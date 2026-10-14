@@ -18,6 +18,10 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      demos:
+        # Fixed address so apps can trust X-Forwarded-For from Caddy only.
+        ipv4_address: 172.30.0.2
     logging: *logging
 
   waste-sorter:
@@ -28,6 +32,12 @@ services:
     expose:
       - "3333"
     env_file: ${ENV_DIR:-/etc/demos}/waste-sorter.env
+    environment:
+      # Caddy's address on the demos network. Set here, next to the subnet,
+      # so it cannot drift; overrides any value in the env file.
+      TRUSTED_PROXIES: 172.30.0.2
+    networks:
+      - demos
     volumes:
       # SQLite database lives at /app/tmp/db.sqlite3.
       - waste_sorter_db:/app/tmp
@@ -39,6 +49,15 @@ services:
       start_period: 10s
       retries: 3
     logging: *logging
+
+networks:
+  demos:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          # Dynamic addresses come from the upper half only, so no container
+          # can take Caddy's static 172.30.0.2.
+          ip_range: 172.30.0.128/25
 
 volumes:
   caddy_data:
