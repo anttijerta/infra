@@ -3,10 +3,20 @@
 # server. Safe to run again: every step checks or overwrites its own state.
 set -euo pipefail
 
-ADMIN_USER=<admin-user>
+# Usage: ADMIN_USER=<name> bash setup.sh
 
 if [[ $EUID -ne 0 ]]; then
 	echo "Run as root." >&2
+	exit 1
+fi
+
+ADMIN_USER=${ADMIN_USER:-}
+if [[ -z $ADMIN_USER ]]; then
+	echo "ADMIN_USER is required. Usage: ADMIN_USER=<name> bash setup.sh" >&2
+	exit 1
+fi
+if [[ ! $ADMIN_USER =~ ^[a-z_][a-z0-9_-]{0,31}$ || $ADMIN_USER == root ]]; then
+	echo "ADMIN_USER '${ADMIN_USER}' is not a valid non-root user name." >&2
 	exit 1
 fi
 

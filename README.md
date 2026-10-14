@@ -66,7 +66,7 @@ Clone to `/opt/infra` and run setup from the clone:
 
 ```sh
 git clone git@github.com:anttijerta/infra.git /opt/infra
-bash /opt/infra/server/setup.sh
+ADMIN_USER=<admin-user> bash /opt/infra/server/setup.sh
 passwd <admin-user>
 ```
 
