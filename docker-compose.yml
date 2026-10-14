@@ -1,0 +1,46 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    # Only Caddy publishes ports. Docker-published ports bypass ufw.
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: ${ENV_DIR:-/etc/demos}/caddy.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
+
+  waste-sorter:
+    # Trade-off: defaults to the mutable "latest" tag for convenience. Set
+    # WASTE_SORTER_TAG in .env to a version or commit SHA to pin the image.
+    image: ghcr.io/anttijerta/waste-sorter:${WASTE_SORTER_TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "3333"
+    env_file: ${ENV_DIR:-/etc/demos}/waste-sorter.env
+    volumes:
+      # SQLite database lives at /app/tmp/db.sqlite3.
+      - waste_sorter_db:/app/tmp
+    healthcheck:
+      # The image has no curl or wget, so use Node's fetch.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:
+  waste_sorter_db:

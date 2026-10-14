@@ -1,0 +1,21 @@
+{
+	email {$ACME_EMAIL}
+}
+
+waste-sorter.jerta.fi {
+	encode zstd gzip
+
+	header {
+		# HSTS without includeSubDomains/preload: other jerta.fi subdomains may
+		# not serve HTTPS, and preload is hard to undo.
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		# Allow embedding on jerta.fi only. Replaces X-Frame-Options, which
+		# cannot allow a specific origin.
+		Content-Security-Policy "frame-ancestors https://jerta.fi"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy waste-sorter:3333
+}
