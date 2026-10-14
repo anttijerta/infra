@@ -157,3 +157,11 @@ git pull
 docker compose pull
 docker compose up -d
 ```
+
+The SQLite database moved from the `waste_sorter_db` volume (`/app/tmp`) to
+`waste_sorter_data` (`/app/data`). Once the new version is verified, remove the
+old volume:
+
+```sh
+docker volume rm infra_waste_sorter_db
+```

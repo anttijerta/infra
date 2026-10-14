@@ -39,8 +39,8 @@ services:
     networks:
       - demos
     volumes:
-      # SQLite database lives at /app/tmp/db.sqlite3.
-      - waste_sorter_db:/app/tmp
+      # SQLite database lives at /app/data/db.sqlite3.
+      - waste_sorter_data:/app/data
     healthcheck:
       # The image has no curl or wget, so use Node's fetch.
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
@@ -62,4 +62,4 @@ networks:
 volumes:
   caddy_data:
   caddy_config:
-  waste_sorter_db:
+  waste_sorter_data:
