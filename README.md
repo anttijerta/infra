@@ -4,6 +4,8 @@ Server setup for Jerta's public demos: one UpCloud server (Ubuntu LTS, Helsinki)
 running Docker Compose behind Caddy. Secrets live only in env files on the
 server, never in this repo.
 
+Demo app: [waste-sorter](https://github.com/anttijerta/waste-sorter).
+
 ## Layout
 
 | Path | Purpose |
@@ -78,23 +80,7 @@ Keep the root session open. In a new terminal, confirm `ssh <admin-user>@<server
 > 4. After setup, copy the key and config to `/home/<admin-user>/.ssh/` (mode
 >    600, owned by `<admin-user>`) and delete root's copies.
 
-### 4. Log in to GHCR
-
-Create a GitHub personal access token (classic) with only the `read:packages`
-scope, then as `<admin-user>`:
-
-```sh
-docker login ghcr.io -u <github-user>
-```
-
-Paste the token when prompted. Docker stores it in `~/.docker/config.json`
-(base64, not encrypted); it is read-only, so a leak exposes images only.
-
-The token has an expiry date. Note it, and before it expires create a new token
-and run `docker login ghcr.io` again. An expired token shows up as
-`unauthorized` or `denied` errors from `docker compose pull`.
-
-### 5. Create env files
+### 4. Create env files
 
 `docker compose` reads env files as the user running it, so `/etc/demos` and the
 files in it belong to `<admin-user>` and are readable by nobody else:
@@ -107,10 +93,18 @@ cp /opt/infra/.env.example /opt/infra/.env
 ```
 
 Edit `/etc/demos/caddy.env` and `/etc/demos/waste-sorter.env` as `<admin-user>`, and fill
-in `ACME_EMAIL` and `APP_KEY` (`openssl rand -base64 32`). In `/opt/infra/.env`,
-set `WASTE_SORTER_TAG` to a specific version to pin the image.
+in:
 
-### 6. Upgrade and reboot
+- `ACME_EMAIL`
+- `APP_KEY` (`openssl rand -base64 32`)
+- `MODEL_API_KEY`: the app refuses to start in production without it. For a
+  keyless demo with simulated models, leave it empty and set
+  `ALLOW_MOCK_MODELS=true` instead.
+
+In `/opt/infra/.env`, set `WASTE_SORTER_TAG` to a specific version to pin the
+image.
+
+### 5. Upgrade and reboot
 
 Install pending updates before starting services, and reboot if the kernel or
 core libraries changed:
@@ -122,7 +116,7 @@ sudo apt update && sudo apt upgrade -y
 
 After a reboot, log in again as `<admin-user>`.
 
-### 7. Start
+### 6. Start
 
 ```sh
 cd /opt/infra
@@ -130,7 +124,13 @@ docker compose pull
 docker compose up -d
 ```
 
-### 8. Verify
+> **Private images?** The waste-sorter image is public, so no login is needed.
+> If yours is private, first run `docker login ghcr.io -u <github-user>` as
+> `<admin-user>` with a classic personal access token scoped to `read:packages`
+> only. Docker stores it unencrypted in `~/.docker/config.json`, and it expires:
+> renew it before then, or `docker compose pull` fails with `unauthorized`.
+
+### 7. Verify
 
 ```sh
 docker compose ps                                 # both services up, waste-sorter healthy
