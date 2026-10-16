@@ -34,57 +34,49 @@ Caddy cannot obtain a certificate before DNS points to the server.
 
 ### 3. Clone the repo and run setup.sh
 
-As root on the server, create a deploy key for this repo:
+As root on the server, clone to `/opt/infra` over HTTPS and run setup from the
+clone:
 
 ```sh
-ssh-keygen -t ed25519 -N "" -C "infra deploy key" -f /root/.ssh/infra_deploy_key
-cat /root/.ssh/infra_deploy_key.pub
-```
-
-In GitHub, add the public key under the repo's Settings → Deploy keys, with
-"Allow write access" left unchecked (read-only).
-
-Outbound port 22 to GitHub is blocked from the UpCloud server, so reach GitHub's
-SSH service on port 443 instead. Create `/root/.ssh/config`:
-
-```sh
-cat >/root/.ssh/config <<'EOF'
-Host github.com
-  HostName ssh.github.com
-  Port 443
-  User git
-  IdentityFile ~/.ssh/infra_deploy_key
-  IdentitiesOnly yes
-EOF
-chmod 600 /root/.ssh/config
-```
-
-The first connection asks you to accept the host key for `[ssh.github.com]:443`;
-compare it with GitHub's published SSH key fingerprints before accepting.
-
-Clone to `/opt/infra` and run setup from the clone:
-
-```sh
-git clone git@github.com:anttijerta/infra.git /opt/infra
+git clone https://github.com/anttijerta/infra.git /opt/infra
 ADMIN_USER=<admin-user> bash /opt/infra/server/setup.sh
 passwd <admin-user>
 ```
 
-Hand the clone, the deploy key and the SSH config over to `<admin-user>`, so `git pull`
-works as that user, and remove root's copies:
+Hand the clone over to `<admin-user>`, so `git pull` works as that user:
 
 ```sh
-install -m 600 -o <admin-user> -g <admin-user> /root/.ssh/infra_deploy_key /home/<admin-user>/.ssh/infra_deploy_key
-install -m 600 -o <admin-user> -g <admin-user> /root/.ssh/config /home/<admin-user>/.ssh/config
 chown -R <admin-user>:<admin-user> /opt/infra
 sudo -u <admin-user> git -C /opt/infra pull
-rm /root/.ssh/infra_deploy_key /root/.ssh/infra_deploy_key.pub /root/.ssh/config
 ```
-
-`<admin-user>` gets the same host key prompt on the first pull.
 
 Keep the root session open. In a new terminal, confirm `ssh <admin-user>@<server>` and
 `sudo -v` work before closing it; root login is disabled from now on.
+
+> **Forking into a private repo?** An HTTPS clone then needs credentials. Use a
+> read-only deploy key instead:
+>
+> 1. As root, run `ssh-keygen -t ed25519 -N "" -f /root/.ssh/infra_deploy_key`
+>    and add the `.pub` file under the repo's Settings → Deploy keys, with
+>    "Allow write access" left unchecked.
+> 2. If outbound port 22 to GitHub is blocked (it was on our UpCloud server),
+>    create `/root/.ssh/config` (mode 600) to use GitHub's SSH service on
+>    port 443:
+>
+>    ```
+>    Host github.com
+>      HostName ssh.github.com
+>      Port 443
+>      User git
+>      IdentityFile ~/.ssh/infra_deploy_key
+>      IdentitiesOnly yes
+>    ```
+>
+>    Compare the `[ssh.github.com]:443` host key with GitHub's published
+>    fingerprints on first connect.
+> 3. Clone with `git clone git@github.com:<owner>/<repo>.git /opt/infra`.
+> 4. After setup, copy the key and config to `/home/<admin-user>/.ssh/` (mode
+>    600, owned by `<admin-user>`) and delete root's copies.
 
 ### 4. Log in to GHCR
 
